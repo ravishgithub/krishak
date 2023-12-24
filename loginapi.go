@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
@@ -13,10 +14,30 @@ import (
 type Credentials struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
+	Token    string `json:"token"`
 }
 
 var validUsername = "admin"
 var hashedPassword, _ = bcrypt.GenerateFromPassword([]byte("admin123"), bcrypt.DefaultCost)
+
+func init() {
+	// Load the credentials from the JSON file during initialization
+	loadCredentialsFromFile("credentials.json")
+}
+
+func loadCredentialsFromFile(filename string) {
+	// Read the JSON file and decode its contents into the Credentials struct
+	fileData, err := ioutil.ReadFile(filename)
+	if err != nil {
+		panic(err) // Handle error reading the file
+	}
+
+	var creds Credentials // Variable to hold the credentials
+	err = json.Unmarshal(fileData, &creds)
+	if err != nil {
+		panic(err) // Handle error decoding JSON
+	}
+}
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -57,7 +78,10 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
 	http.HandleFunc("/login", loginHandler)
 
+	// Endpoint for checking authentication
+	//http.HandleFunc("/check_auth", checkAuthHandler)
+	//http.HandleFunc("/check_auth", authentication.CheckAuthHandler)
+
 	fmt.Println("Server running on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
-
