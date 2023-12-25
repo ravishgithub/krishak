@@ -1,10 +1,8 @@
-package main
+package authentication
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"time"
 
@@ -39,7 +37,7 @@ func loadCredentialsFromFile(filename string) {
 	}
 }
 
-func loginHandler(w http.ResponseWriter, r *http.Request) {
+func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -73,15 +71,4 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(jsonResponse)
-}
-
-func main() {
-	http.HandleFunc("/login", loginHandler)
-
-	// Endpoint for checking authentication
-	//http.HandleFunc("/check_auth", checkAuthHandler)
-	//http.HandleFunc("/check_auth", authentication.CheckAuthHandler)
-
-	fmt.Println("Server running on port 8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
 }
