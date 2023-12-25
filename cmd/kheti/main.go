@@ -10,9 +10,11 @@ import (
 
 func main() {
 	fmt.Println("Hello, Go Project!")
+
+	//Endpoint for login
 	http.HandleFunc("/login", authentication.LoginHandler)
 
-	// Endpoint for checking authentication
+	// Endpoint for checking authentication token
 	http.HandleFunc("/check_auth", authentication.CheckAuthHandler)
 
 	fmt.Println("Server running on port 8080")

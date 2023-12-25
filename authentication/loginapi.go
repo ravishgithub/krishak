@@ -2,8 +2,10 @@ package authentication
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -14,45 +16,77 @@ type Credentials struct {
 	Password string `json:"password"`
 	Token    string `json:"token"`
 }
-
-var validUsername = "admin"
-var hashedPassword, _ = bcrypt.GenerateFromPassword([]byte("admin123"), bcrypt.DefaultCost)
-
-func init() {
-	// Load the credentials from the JSON file during initialization
-	loadCredentialsFromFile("credentials.json")
+type LoginConfig struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Token    string `json:"token"`
 }
 
-func loadCredentialsFromFile(filename string) {
-	// Read the JSON file and decode its contents into the Credentials struct
-	fileData, err := ioutil.ReadFile(filename)
+type Config struct {
+	Server   ServerConfig   `json:"server"`
+	Database DatabaseConfig `json:"database"`
+	Login    LoginConfig    `json:"login"`
+}
+
+type ServerConfig struct {
+	Port     int    `json:"port"`
+	Hostname string `json:"hostname"`
+}
+
+type DatabaseConfig struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Name     string `json:"name"`
+}
+
+func loadConfig() (Config, error) {
+	var config Config
+
+	// Get the absolute path to the config.json file
+	configPath := filepath.Join("configs", "config.json")
+	absPath, _ := filepath.Abs(configPath)
+	fmt.Println("Absolute Path:", absPath)
+
+	// Open and read the configuration file
+	file, err := os.Open(configPath)
 	if err != nil {
-		panic(err) // Handle error reading the file
+		return config, fmt.Errorf("error opening config file: %w", err)
+	}
+	defer file.Close()
+
+	// Decode JSON into a Config struct
+	decoder := json.NewDecoder(file)
+	if err := decoder.Decode(&config); err != nil {
+		return config, fmt.Errorf("error decoding config file: %w", err)
 	}
 
-	var creds Credentials // Variable to hold the credentials
-	err = json.Unmarshal(fileData, &creds)
-	if err != nil {
-		panic(err) // Handle error decoding JSON
-	}
+	return config, nil
 }
 
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
+
+	config, errConfig := loadConfig()
+	if errConfig != nil {
+		fmt.Println("Error loading config:", errConfig)
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	var creds Credentials
-	err := json.NewDecoder(r.Body).Decode(&creds)
-	if err != nil {
+	errCreds := json.NewDecoder(r.Body).Decode(&creds)
+	if errCreds != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
+	var hashedPassword, _ = bcrypt.GenerateFromPassword([]byte(config.Login.Password), bcrypt.DefaultCost)
 	// Simulating a hashed password stored in a database
-	err = bcrypt.CompareHashAndPassword(hashedPassword, []byte(creds.Password))
-	if err != nil || creds.Username != validUsername {
+	errCreds = bcrypt.CompareHashAndPassword(hashedPassword, []byte(creds.Password))
+	if errCreds != nil || creds.Username != config.Login.Username {
 		http.Error(w, "Invalid username or password", http.StatusUnauthorized)
 		return
 	}
