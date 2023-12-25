@@ -18,6 +18,8 @@ Assuming the Go server is running locally on http://localhost:8080, and the logi
 Sending a Valid Login Request:
 ```curl -X POST -H "Content-Type: application/json" -d '{"username":"admin","password":"admin123"}' http://localhost:8080/login```
 
+Sending a Valid Login Request: windows machine example
+```curl -X POST -H "Content-Type: application/json" -d "{\"username\":\"admin\",\"password\":\"admin123\"}" http://localhost:8080/login```
 This curl command sends a POST request with the JSON payload containing the username and password to the /login endpoint. If the credentials are valid, the server should respond with a success message and a token (in this example, a placeholder token is used).
 
 Sending an Invalid Login Request:
