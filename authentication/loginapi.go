@@ -92,7 +92,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate a JWT token (example)
-	token := "example_jwt_token"
+	token := "example_token"
 	expiration := time.Now().Add(24 * time.Hour) // Set token expiration
 
 	// Respond with the token
