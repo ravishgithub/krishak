@@ -26,5 +26,9 @@ func IsValidToken(token string) bool {
 	// Return true if the token is valid, false otherwise
 
 	// Example: For demonstration purposes, assuming a hardcoded valid token "example_token"
-	return token == "example_token"
+	config, errConfig := loadConfig()
+	if errConfig != nil {
+		return false
+	}
+	return token == config.Login.Token
 }

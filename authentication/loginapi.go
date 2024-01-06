@@ -16,11 +16,6 @@ type Credentials struct {
 	Password string `json:"password"`
 	Token    string `json:"token"`
 }
-type LoginConfig struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Token    string `json:"token"`
-}
 
 type Config struct {
 	Server   ServerConfig   `json:"server"`
@@ -32,7 +27,11 @@ type ServerConfig struct {
 	Port     int    `json:"port"`
 	Hostname string `json:"hostname"`
 }
-
+type LoginConfig struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Token    string `json:"token"`
+}
 type DatabaseConfig struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -92,7 +91,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate a JWT token (example)
-	token := "example_token"
+	token := config.Login.Token
 	expiration := time.Now().Add(24 * time.Hour) // Set token expiration
 
 	// Respond with the token
