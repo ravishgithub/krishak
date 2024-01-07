@@ -3,6 +3,17 @@ This is just a sample go app which has just two APIS login & check_auth
 login API authenticate the user with user name and PWD and provides a toekn on successful authentication 
 check_auth API expect a token in the header and valids if that's valid token
 
+Project Structure
+Krishak/
+├── authentication/
+│   ├── loginapi.go
+│   └── checkauth.go
+└── cmd/
+    └── kheti/
+        ├── main.go
+        └── configs/
+            └── config.json
+
 Assuming the Go server is running locally on http://localhost:8080, and the login endpoint is /login.
 
 Sending a Valid Login Request:
@@ -18,3 +29,8 @@ This command sends another POST request with incorrect credentials. If the crede
 
 Sending valid auth request
 ```curl -X POST 'http://localhost:8080/check_auth' -H 'Authorization: example_token'```
+
+Running inside docker container
+```docker build -t my-login-app .
+```docker run -p 8080:8080 my-login-app
+
