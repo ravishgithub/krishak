@@ -1,4 +1,4 @@
-# krishak
+# Krishak
 This is just a sample go app which has just two APIS login & check_auth
 login API authenticate the user with user name and PWD and provides a toekn on successful authentication 
 check_auth API expect a token in the header and valids if that's valid token
