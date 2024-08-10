@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -27,33 +28,48 @@ type ServerConfig struct {
 	Port     int    `json:"port"`
 	Hostname string `json:"hostname"`
 }
+
 type LoginConfig struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 	Token    string `json:"token"`
 }
+
 type DatabaseConfig struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 	Name     string `json:"name"`
 }
 
+var jwtSecret []byte
+
+func init() {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		fmt.Println("Warning: JWT_SECRET is not set")
+	}
+	jwtSecret = []byte(secret)
+}
+
 func loadConfig() (Config, error) {
 	var config Config
-
-	// Get the absolute path to the config.json file
 	configPath := filepath.Join("configs", "config.json")
-	absPath, _ := filepath.Abs(configPath)
+	if customPath := os.Getenv("CONFIG_PATH"); customPath != "" {
+		configPath = customPath
+	}
+
+	absPath, err := filepath.Abs(configPath)
+	if err != nil {
+		return config, fmt.Errorf("error getting absolute path: %w", err)
+	}
 	fmt.Println("Absolute Path:", absPath)
 
-	// Open and read the configuration file
-	file, err := os.Open(configPath)
+	file, err := os.Open(absPath)
 	if err != nil {
 		return config, fmt.Errorf("error opening config file: %w", err)
 	}
 	defer file.Close()
 
-	// Decode JSON into a Config struct
 	decoder := json.NewDecoder(file)
 	if err := decoder.Decode(&config); err != nil {
 		return config, fmt.Errorf("error decoding config file: %w", err)
@@ -62,46 +78,111 @@ func loadConfig() (Config, error) {
 	return config, nil
 }
 
-func LoginHandler(w http.ResponseWriter, r *http.Request) {
+func NewLoginHandler() (http.HandlerFunc, error) {
+	config, err := loadConfig()
+	if err != nil {
+		return nil, err
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
 
-	config, errConfig := loadConfig()
-	if errConfig != nil {
-		fmt.Println("Error loading config:", errConfig)
-		return
+		var creds Credentials
+		if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		err := bcrypt.CompareHashAndPassword([]byte(config.Login.Password), []byte(creds.Password))
+		if err != nil || creds.Username != config.Login.Username {
+			http.Error(w, "Invalid username or password", http.StatusUnauthorized)
+			return
+		}
+
+		// Generate a new token for the user
+		token, err := generateToken(creds.Username)
+		if err != nil {
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		expiration := time.Now().Add(24 * time.Hour)
+
+		response := map[string]interface{}{
+			"token":      token,
+			"expires_at": expiration.Format(time.RFC3339),
+		}
+		jsonResponse, err := json.Marshal(response)
+		if err != nil {
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(jsonResponse)
+	}, nil
+}
+
+func NewCheckAuthHandler() (http.HandlerFunc, error) {
+	config, err := loadConfig()
+	if err != nil {
+		return nil, err
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		token := r.Header.Get("Authorization")
+
+		if IsValidToken(token, config) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("User is authenticated"))
+		} else {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte("User is not authenticated"))
+		}
+	}, nil
+}
+
+func IsValidToken(tokenString string, config Config) bool {
+	// Parse the token
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		// Ensure that the token's signing method is as expected (HMAC)
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return jwtSecret, nil // jwtSecret is the secret used to sign the token
+	})
+
+	if err != nil {
+		// Log or handle the error accordingly
+		fmt.Println("Error parsing token:", err)
+		return false
 	}
 
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
+	// Check if the token is valid and if the claims match what you expect
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		// Here you can check the claims (e.g., username, exp) as needed
+		if claims["username"] == config.Login.Username {
+			return true
+		}
 	}
 
-	var creds Credentials
-	errCreds := json.NewDecoder(r.Body).Decode(&creds)
-	if errCreds != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
+	return false
+}
+
+func generateToken(username string) (string, error) {
+	claims := jwt.MapClaims{
+		"username": username,
+		"exp":      time.Now().Add(24 * time.Hour).Unix(),
 	}
 
-	var hashedPassword, _ = bcrypt.GenerateFromPassword([]byte(config.Login.Password), bcrypt.DefaultCost)
-	// Simulating a hashed password stored in a database
-	errCreds = bcrypt.CompareHashAndPassword(hashedPassword, []byte(creds.Password))
-	if errCreds != nil || creds.Username != config.Login.Username {
-		http.Error(w, "Invalid username or password", http.StatusUnauthorized)
-		return
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	tokenString, err := token.SignedString(jwtSecret)
+	if err != nil {
+		return "", err
 	}
 
-	// Generate a JWT token (example)
-	token := config.Login.Token
-	expiration := time.Now().Add(24 * time.Hour) // Set token expiration
-
-	// Respond with the token
-	response := map[string]interface{}{
-		"token":      token,
-		"expires_at": expiration.Format(time.RFC3339),
-	}
-	jsonResponse, _ := json.Marshal(response)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(jsonResponse)
+	return tokenString, nil
 }

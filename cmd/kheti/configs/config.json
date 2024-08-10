@@ -10,7 +10,7 @@
     },
     "login":{
         "username": "admin",
-        "password": "admin123",
+        "password": "$2y$10$UBoNTkw6NbHd8uR2ceUo1e00i6nyy6tCAwqB2kfBWROKl4nRAbXhW",
         "token": "example_token"
       }
 

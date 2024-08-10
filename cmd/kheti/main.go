@@ -9,17 +9,19 @@ import (
 )
 
 func main() {
-	fmt.Println("Hello, Go Project!")
+	loginHandler, err := authentication.NewLoginHandler()
+	if err != nil {
+		log.Fatal("Error loading login handler:", err)
+	}
 
-	//Endpoint for login
-	http.HandleFunc("/login", authentication.LoginHandler)
+	checkAuthHandler, err := authentication.NewCheckAuthHandler()
+	if err != nil {
+		log.Fatal("Error loading check auth handler:", err)
+	}
 
-	// Endpoint for checking authentication token
-	http.HandleFunc("/check_auth", authentication.CheckAuthHandler)
+	http.HandleFunc("/login", loginHandler)
+	http.HandleFunc("/check_auth", checkAuthHandler)
 
 	fmt.Println("Server running on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
-	http.HandleFunc("/check_auth", authentication.CheckAuthHandler)
-	// Add your application logic here
-	// For example, start your server or perform other initializations
 }
