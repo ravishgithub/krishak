@@ -1,47 +1,117 @@
-# Krishak
-This is just a sample go app which has just two APIS login & check_auth
-login API authenticate the user with user name and PWD and provides a toekn on successful authentication 
-check_auth API expect a token in the header and valids if that's valid token
 
-Project Structure
-Krishak/
-├── authentication/
-│   ├── loginapi.go
-│   └── checkauth.go
-└── cmd/
-    └── kheti/
-        ├── main.go
-        └── configs/
-            └── config.json
+# Krishak 🌾
 
-Assuming the Go server is running locally on http://localhost:8080, and the login endpoint is /login.
+Krishak is a lightweight Go-based microservice application to help manage agricultural land contracts. It features JWT-based authentication and a simple in-memory backend suitable for local and prototyping use.
 
-Setting JWT Secret Linux
-```export JWT_SECRET="ebee1a4380a9ab9a0a84b091c1f7abcf30c3428608f122dbd91e13db134b16bc"```
-Setting JWT Secret Windows
-```set JWT_SECRET=ebee1a4380a9ab9a0a84b091c1f7abcf30c3428608f122dbd91e13db134b16bc``` 
+---
 
-Sending a Valid Login Request:
-```curl -X POST -H "Content-Type: application/json" -d '{"username":"admin","password":"ebee1a4380a9ab9a0a84b091c1f7abcf30c3428608f122dbd91e13db134b16bc"}' http://localhost:8080/login```
+## 🔐 Authentication
 
-Sending a Valid Login Request: windows machine example
-```curl -X POST -H "Content-Type: application/json" -d "{\"username\":\"admin\",\"password\":\"ebee1a4380a9ab9a0a84b091c1f7abcf30c3428608f122dbd91e13db134b16bc\"}" http://localhost:8080/login```
-This curl command sends a POST request with the JSON payload containing the username and password to the /login endpoint. If the credentials are valid, the server should respond with a success message and a token (in this example, a placeholder token is used).
+Use the `/login` endpoint to obtain a JWT token. The token must be passed via the `Authorization` header for all protected `POST` endpoints.
 
-Sending an Invalid Login Request:
-```curl -X POST -H "Content-Type: application/json" -d '{"username":"invaliduser","password":"wrongpassword"}' http://localhost:8080/login```
-This command sends another POST request with incorrect credentials. If the credentials are invalid, the server should respond with an error message, indicating "Invalid username or password."
+### Login (GET JWT token)
+```bash
+curl -X POST http://localhost:8080/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"krishak2024"}'
+```
 
+### Check Token Validity
+```bash
+curl -X POST http://localhost:8080/check_auth \
+  -H "Authorization: YOUR_TOKEN_HERE"
+```
 
-Sending valid auth request (Lnix), please use toekn received from login not the sample 
-```curl -X POST "http://localhost:8080/check_auth" -H "Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MjMzODAyNDksInVzZXJuYW1lIjoiYWRtaW4ifQ.xaGzzLBwflGKrmnxn1HdnRxdojgqcOMB85ZM9tqKkKM"```
+---
 
-Sending valid auth request (Windows), please use toekn received from login not the sample
-```curl -X POST "http://localhost:8080/check_auth" -H "Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MjMzODAyNDksInVzZXJuYW1lIjoiYWRtaW4ifQ.xaGzzLBwflGKrmnxn1HdnRxdojgqcOMB85ZM9tqKkKM"```
+## 🔐 Protected Endpoints (require JWT)
 
-Running inside docker container
-```go build -o myapp krishak.tech/kheti/cmd/kheti
+### Add Contractor
+```bash
+curl -X POST http://localhost:8080/contractors \
+  -H "Authorization: YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Ravi Tiwari","contact":"9876543210","aadhar":"123456789012"}'
+```
 
-```docker build -t my-login-app .```
-```docker run -p 8080:8080 my-login-app
+### Add Land
+```bash
+curl -X POST http://localhost:8080/lands \
+  -H "Authorization: YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{"size":2.5,"location":"Dhanha Bandhiya","soil_type":"Clay"}'
+```
 
+### Add Contract
+```bash
+curl -X POST http://localhost:8080/contracts \
+  -H "Authorization: YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contractor_id": "REPLACE_CONTRACTOR_ID",
+    "land_id": "REPLACE_LAND_ID",
+    "start_date": "2024-07-01",
+    "end_date": "2025-06-30",
+    "expected_yield": 90
+  }'
+```
+
+---
+
+## 🌐 Public `GET` Endpoints
+
+### List Contractors
+```bash
+curl http://localhost:8080/list_contractors
+```
+
+### List Lands
+```bash
+curl http://localhost:8080/list_lands
+```
+
+### List Contracts
+```bash
+curl http://localhost:8080/list_contracts
+```
+
+---
+
+## 🧪 Running the App Locally
+
+```bash
+export JWT_SECRET="krishakdevsupersecret"
+go run main.go
+```
+
+---
+
+## 📁 Project Structure
+
+```
+krishak/
+├── authentication/       # JWT login and auth logic
+├── handlers/             # Contractors, lands, contracts
+├── configs/config.json   # Login credentials
+├── main.go               # App entrypoint
+├── Dockerfile            # For containerization
+├── go.mod, go.sum
+└── .gitignore
+```
+
+---
+
+## 🐳 Docker Build & Run (optional)
+
+```bash
+docker build -t krishak-app .
+docker run -p 8080:8080 -e JWT_SECRET=krishakdevsupersecret krishak-app
+```
+
+---
+
+## 🗃 Roadmap
+
+- 🔲 Add persistent DB (SQLite / Autonomous JSON DB)
+- 🔲 Add static frontend hosted on OCI Object Storage
+- 🔲 Migrate handlers into OCI Functions for serverless hosting

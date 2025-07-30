@@ -1,0 +1,16 @@
+
+# Binaries
+khetiapp
+
+# Config files
+/configs/config.json
+
+# OS-generated files
+.DS_Store
+__MACOSX/
+
+# Dependency directories (if ever used)
+vendor/
+
+# Go test cache
+*.test

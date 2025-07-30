@@ -51,7 +51,7 @@ func init() {
 	jwtSecret = []byte(secret)
 }
 
-func loadConfig() (Config, error) {
+func LoadConfig() (Config, error) {
 	var config Config
 	configPath := filepath.Join("configs", "config.json")
 	if customPath := os.Getenv("CONFIG_PATH"); customPath != "" {
@@ -79,7 +79,7 @@ func loadConfig() (Config, error) {
 }
 
 func NewLoginHandler() (http.HandlerFunc, error) {
-	config, err := loadConfig()
+	config, err := LoadConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +127,7 @@ func NewLoginHandler() (http.HandlerFunc, error) {
 }
 
 func NewCheckAuthHandler() (http.HandlerFunc, error) {
-	config, err := loadConfig()
+	config, err := LoadConfig()
 	if err != nil {
 		return nil, err
 	}
