@@ -86,12 +86,34 @@ go run main.go
 
 ---
 
+## 🧪 Unit Testing
+
+This project includes unit tests for:
+
+- `authentication/loginapi.go`
+- `handlers/contractors.go`
+- `handlers/lands.go`
+- `handlers/contracts.go`
+
+### Run All Tests
+```bash
+go test ./...
+```
+
+Make sure to set the `JWT_SECRET` environment variable and have `configs/config.json` in place for login tests to work.
+
+---
+
 ## 📁 Project Structure
 
 ```
 krishak/
 ├── authentication/       # JWT login and auth logic
+│   └── loginapi_test.go
 ├── handlers/             # Contractors, lands, contracts
+│   ├── contractors_test.go
+│   ├── lands_test.go
+│   └── contracts_test.go
 ├── configs/config.json   # Login credentials
 ├── main.go               # App entrypoint
 ├── Dockerfile            # For containerization
@@ -112,6 +134,7 @@ docker run -p 8080:8080 -e JWT_SECRET=krishakdevsupersecret krishak-app
 
 ## 🗃 Roadmap
 
+- ✅ Unit tests with `go test ./...`
 - 🔲 Add persistent DB (SQLite / Autonomous JSON DB)
 - 🔲 Add static frontend hosted on OCI Object Storage
 - 🔲 Migrate handlers into OCI Functions for serverless hosting
