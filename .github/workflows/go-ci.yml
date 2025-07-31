@@ -15,7 +15,6 @@ jobs:
       uses: actions/checkout@v3
 
     - name: 🛠 Setup Go 1.24
-      id: setup-go
       uses: actions/setup-go@v4
       with:
         go-version: '1.24'
@@ -27,7 +26,9 @@ jobs:
     - name: 📦 Tidy dependencies
       run: go mod tidy
 
-    - name: 🧪 Run unit tests
-      run: go test ./...
+    - name: 🧪 Run unit tests with coverage
+      run: |
+        go test -coverprofile=coverage.out ./...
+        go tool cover -func=coverage.out
       env:
         JWT_SECRET: krishakdevsupersecret
