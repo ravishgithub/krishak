@@ -1,4 +1,5 @@
-module krishak.tech/kheti
+module github.com/ravishgithub/krishak
+
 
 go 1.24
 

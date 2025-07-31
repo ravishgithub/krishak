@@ -6,8 +6,9 @@ import (
     "log"
     "net/http"
 
-    "krishak.tech/kheti/authentication"
-    "krishak.tech/kheti/handlers"
+    "github.com/ravishgithub/krishak/handlers"
+    "github.com/ravishgithub/krishak/authentication"
+
 )
 
 func withAuth(handler http.HandlerFunc) http.HandlerFunc {
