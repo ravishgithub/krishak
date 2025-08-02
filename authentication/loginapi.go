@@ -3,6 +3,7 @@ package authentication
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -46,7 +47,7 @@ var jwtSecret []byte
 func init() {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
-		fmt.Println("Warning: JWT_SECRET is not set")
+		log.Println("Warning: JWT_SECRET is not set")
 	}
 	jwtSecret = []byte(secret)
 }
@@ -54,15 +55,18 @@ func init() {
 func LoadConfig() (Config, error) {
 	var config Config
 	configPath := filepath.Join("configs", "config.json")
+	log.Println("filepath CONFIG_PATH:", configPath)
+
 	if customPath := os.Getenv("CONFIG_PATH"); customPath != "" {
 		configPath = customPath
+		log.Println("inside  CONFIG_PATH:", configPath)
 	}
 
 	absPath, err := filepath.Abs(configPath)
 	if err != nil {
 		return config, fmt.Errorf("error getting absolute path: %w", err)
 	}
-	fmt.Println("Absolute Path:", absPath)
+	log.Println("Absolute Path:", absPath)
 
 	file, err := os.Open(absPath)
 	if err != nil {
@@ -102,7 +106,7 @@ func NewLoginHandler() (http.HandlerFunc, error) {
 		}
 
 		// Generate a new token for the user
-		token, err := generateToken(creds.Username)
+		token, err := GenerateToken(creds.Username)
 		if err != nil {
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
@@ -156,7 +160,7 @@ func IsValidToken(tokenString string, config Config) bool {
 
 	if err != nil {
 		// Log or handle the error accordingly
-		fmt.Println("Error parsing token:", err)
+		log.Println("Error parsing token:", err)
 		return false
 	}
 
@@ -171,7 +175,7 @@ func IsValidToken(tokenString string, config Config) bool {
 	return false
 }
 
-func generateToken(username string) (string, error) {
+func GenerateToken(username string) (string, error) {
 	claims := jwt.MapClaims{
 		"username": username,
 		"exp":      time.Now().Add(24 * time.Hour).Unix(),

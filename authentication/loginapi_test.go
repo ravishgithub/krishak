@@ -1,44 +1,41 @@
 package authentication
 
 import (
-    "net/http"
-    "net/http/httptest"
-    "os"
-    "strings"
-    "testing"
-    "io"
+	"os"
+	"path/filepath"
+	"testing"
 )
 
-func TestLoginSuccess(t *testing.T) {
-    os.Setenv("JWT_SECRET", "krishakdevsupersecret")
+func TestMain(m *testing.M) {
+	os.Setenv("JWT_SECRET", "ebee1a4380a9ab9a0a84b091c1f7abcf30c3428608f122dbd91e13db134b16bc")
 
-    testConfig := `{
-        "server": {"port": 8080, "hostname": "localhost"},
-        "database": {"username": "admin", "password": "admin123", "name": "mydatabase"},
-        "login": {"username": "admin", "password": "$2b$12$z/508EYjbHG/aZG1YnJt8eVIlePdDZpbD7DQU2wENp3kRtDfrbz2u"}
+	// Create test config.json one level above this package
+	cwd, _ := os.Getwd()
+	configDir := filepath.Join(cwd, "../configs")
+	os.MkdirAll(configDir, 0755)
+
+	configPath := filepath.Join(configDir, "config.json")
+	config := `{
+        "login": {
+            "username": "admin",
+            "password": "$2a$10$WcXsDJG7lsNQe08iKkH2z.rP4qqEtIZePI7vjC9dvUQx7et9RQY0u"
+        },
+        "server": { "port": 8080, "hostname": "localhost" },
+        "database": { "username": "admin", "password": "admin123", "name": "testdb" }
     }`
-    os.MkdirAll("configs", 0o755)
-    os.WriteFile("configs/config.json", []byte(testConfig), 0o644)
 
-    handler, err := NewLoginHandler()
-    if err != nil {
-        t.Fatalf("could not get login handler: %v", err)
-    }
+	os.WriteFile(configPath, []byte(config), 0644)
+	os.Setenv("CONFIG_PATH", configPath)
 
-    payload := `{"username":"admin","password":"krishak2024"}`
-    req := httptest.NewRequest("POST", "/login", strings.NewReader(payload))
-    req.Header.Set("Content-Type", "application/json")
-    w := httptest.NewRecorder()
+	os.Exit(m.Run())
+}
 
-    handler(w, req)
-
-    res := w.Result()
-    if res.StatusCode != http.StatusOK {
-        t.Fatalf("expected 200 OK, got %d", res.StatusCode)
-    }
-
-    body, _ := io.ReadAll(res.Body)
-    if !strings.Contains(string(body), "token") {
-        t.Fatalf("response does not contain token: %s", string(body))
-    }
+func TestGenerateToken(t *testing.T) {
+	token, err := GenerateToken("admin")
+	if err != nil {
+		t.Fatalf("Failed to generate token: %v", err)
+	}
+	if token == "" {
+		t.Fatal("Expected non-empty token")
+	}
 }

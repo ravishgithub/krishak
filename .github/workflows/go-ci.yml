@@ -31,4 +31,4 @@ jobs:
         go test -coverprofile=coverage.out ./...
         go tool cover -func=coverage.out
       env:
-        JWT_SECRET: krishakdevsupersecret
+        JWT_SECRET: ebee1a4380a9ab9a0a84b091c1f7abcf30c3428608f122dbd91e13db134b16bc

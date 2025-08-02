@@ -1,31 +1,46 @@
 package handlers
 
 import (
-    "net/http"
-    "net/http/httptest"
-    "strings"
-    "testing"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"github.com/ravishgithub/krishak/authentication"
 )
 
 func TestAddAndListLands(t *testing.T) {
-    addReq := httptest.NewRequest("POST", "/lands", strings.NewReader(`{
-        "size": 2.5,
-        "location": "Test Field",
-        "soil_type": "Sandy"
+	// Set JWT secret for test
+	// Set the JWT secret  and config path already set in handlers_test.go
+	token, err := authentication.GenerateToken("admin")
+	if err != nil {
+		t.Fatalf("failed to generate token: %v", err)
+	}
+
+	// Test POST /lands
+	addReq := httptest.NewRequest("POST", "/lands", strings.NewReader(`{
+        "size": 1.5,
+        "location": "Rampur",
+        "soil_type": "Loamy"
     }`))
-    addReq.Header.Set("Content-Type", "application/json")
-    addW := httptest.NewRecorder()
-    AddLandHandler(addW, addReq)
+	addReq.Header.Set("Content-Type", "application/json")
+	addReq.Header.Set("Authorization", token)
 
-    if addW.Result().StatusCode != http.StatusCreated {
-        t.Fatalf("expected 201 Created")
-    }
+	addW := httptest.NewRecorder()
+	AddLandHandler(addW, addReq)
 
-    listReq := httptest.NewRequest("GET", "/list_lands", nil)
-    listW := httptest.NewRecorder()
-    ListLandsHandler(listW, listReq)
+	if addW.Result().StatusCode != http.StatusCreated {
+		t.Fatalf("expected 201 Created, got %d", addW.Result().StatusCode)
+	}
 
-    if listW.Result().StatusCode != http.StatusOK {
-        t.Fatalf("expected 200 OK")
-    }
+	// Test GET /lands
+	listReq := httptest.NewRequest("GET", "/list_lands", nil)
+	listReq.Header.Set("Authorization", token)
+
+	listW := httptest.NewRecorder()
+	ListLandsHandler(listW, listReq)
+
+	if listW.Result().StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d", listW.Result().StatusCode)
+	}
 }
