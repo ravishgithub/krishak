@@ -1,5 +1,0 @@
-{
-        "server": {"port": 8080, "hostname": "localhost"},
-        "database": {"username": "admin", "password": "admin123", "name": "mydatabase"},
-        "login": {"username": "admin", "password": "$2b$12$z/508EYjbHG/aZG1YnJt8eVIlePdDZpbD7DQU2wENp3kRtDfrbz2u"}
-    }
