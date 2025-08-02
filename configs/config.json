@@ -1,7 +1,7 @@
 {
         "login": {
             "username": "admin",
-            "password": "$2a$10$QKr8.hIm5/h2diVsRFrfWexMb7FY9GGrNqiNYW8LzBqvvxBusgEsS"
+            "password": "$2a$10$WcXsDJG7lsNQe08iKkH2z.rP4qqEtIZePI7vjC9dvUQx7et9RQY0u"
         },
         "server": { "port": 8080, "hostname": "localhost" },
         "database": { "username": "admin", "password": "admin123", "name": "testdb" }

@@ -1,53 +1,48 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/ravishgithub/krishak/authentication"
 	"github.com/ravishgithub/krishak/handlers"
+	"github.com/rs/cors"
 )
 
-func withAuth(handler http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		token := r.Header.Get("Authorization")
-
-		config, err := authentication.LoadConfig()
-		if err != nil || !authentication.IsValidToken(token, config) {
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte("Unauthorized"))
-			return
-		}
-
-		handler(w, r)
-	}
-}
-
 func main() {
+	config, err := authentication.LoadConfig()
+	if err != nil {
+		log.Fatalf("❌ Failed to load config: %v", err)
+	}
+
 	loginHandler, err := authentication.NewLoginHandler()
 	if err != nil {
-		log.Fatal("Error loading login handler:", err)
+		log.Fatalf("❌ Failed to create login handler: %v", err)
 	}
 
 	checkAuthHandler, err := authentication.NewCheckAuthHandler()
 	if err != nil {
-		log.Fatal("Error loading check auth handler:", err)
+		log.Fatalf("❌ Failed to create auth check handler: %v", err)
 	}
 
-	// Public endpoints
 	http.HandleFunc("/login", loginHandler)
 	http.HandleFunc("/check_auth", checkAuthHandler)
+	http.HandleFunc("/contractors", handlers.AddContractorHandler)
+	http.HandleFunc("/lands", handlers.AddLandHandler)
+	http.HandleFunc("/contracts", handlers.AddContractHandler)
 
-	// Protected endpoints
-	http.HandleFunc("/contractors", withAuth(handlers.AddContractorHandler))
-	http.HandleFunc("/lands", withAuth(handlers.AddLandHandler))
-	http.HandleFunc("/contracts", withAuth(handlers.AddContractHandler))
+	corsHandler := cors.New(cors.Options{
+		AllowedOrigins:   config.CORS.AllowedOrigins,
+		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
+		AllowedHeaders:   []string{"Authorization", "Content-Type"},
+		AllowCredentials: true,
+	}).Handler(http.DefaultServeMux)
 
-	// Public read-only endpoints
-	http.HandleFunc("/list_contractors", handlers.ListContractorsHandler)
-	http.HandleFunc("/list_lands", handlers.ListLandsHandler)
-	http.HandleFunc("/list_contracts", handlers.ListContractsHandler)
+	addr := fmt.Sprintf("%s:%d", config.Server.Hostname, config.Server.Port)
+	log.Printf("🌾 Server running at http://%s\n", addr)
 
-	log.Println("Server running on port 8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	if err := http.ListenAndServe(addr, corsHandler); err != nil {
+		log.Fatalf("❌ Server failed: %v", err)
+	}
 }
