@@ -28,9 +28,36 @@ func main() {
 
 	http.HandleFunc("/login", loginHandler)
 	http.HandleFunc("/check_auth", checkAuthHandler)
-	http.HandleFunc("/contractors", handlers.AddContractorHandler)
-	http.HandleFunc("/lands", handlers.AddLandHandler)
-	http.HandleFunc("/contracts", handlers.AddContractHandler)
+	http.HandleFunc("/contractors", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			handlers.ListContractorsHandler(w, r)
+		case http.MethodPost:
+			handlers.AddContractorHandler(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+	http.HandleFunc("/lands", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			handlers.ListLandsHandler(w, r)
+		case http.MethodPost:
+			handlers.AddLandHandler(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+	http.HandleFunc("/contracts", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			handlers.ListContractsHandler(w, r)
+		case http.MethodPost:
+			handlers.AddContractHandler(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
 
 	corsHandler := cors.New(cors.Options{
 		AllowedOrigins:   config.CORS.AllowedOrigins,

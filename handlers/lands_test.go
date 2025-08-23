@@ -1,46 +1,91 @@
 package handlers
 
 import (
+	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-
-	"github.com/ravishgithub/krishak/authentication"
 )
 
-func TestAddAndListLands(t *testing.T) {
-	// Set JWT secret for test
-	// Set the JWT secret  and config path already set in handlers_test.go
-	token, err := authentication.GenerateToken("admin")
-	if err != nil {
-		t.Fatalf("failed to generate token: %v", err)
+func TestAddLandHandler_Success(t *testing.T) {
+	land := Land{Village: "Rampur", Khasra: "K123", Acre: 2.5}
+	body, _ := json.Marshal(land)
+	req := httptest.NewRequest("POST", "/lands", bytes.NewReader(body))
+	req.Header.Set("Authorization", ValidToken())
+	rr := httptest.NewRecorder()
+
+	AddLandHandler(rr, req)
+
+	if rr.Code != http.StatusCreated {
+		t.Errorf("expected status 201, got %d", rr.Code)
 	}
-
-	// Test POST /lands
-	addReq := httptest.NewRequest("POST", "/lands", strings.NewReader(`{
-        "size": 1.5,
-        "location": "Rampur",
-        "soil_type": "Loamy"
-    }`))
-	addReq.Header.Set("Content-Type", "application/json")
-	addReq.Header.Set("Authorization", token)
-
-	addW := httptest.NewRecorder()
-	AddLandHandler(addW, addReq)
-
-	if addW.Result().StatusCode != http.StatusCreated {
-		t.Fatalf("expected 201 Created, got %d", addW.Result().StatusCode)
+	var resp Land
+	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
+		t.Errorf("invalid response: %v", err)
 	}
+	if resp.Village != land.Village || resp.Khasra != land.Khasra || resp.Acre != land.Acre {
+		t.Errorf("land fields not saved correctly")
+	}
+}
 
-	// Test GET /lands
-	listReq := httptest.NewRequest("GET", "/list_lands", nil)
-	listReq.Header.Set("Authorization", token)
+func TestAddLandHandler_InvalidMethod(t *testing.T) {
+	req := httptest.NewRequest("GET", "/lands", nil)
+	rr := httptest.NewRecorder()
+	AddLandHandler(rr, req)
+	if rr.Code != http.StatusMethodNotAllowed {
+		t.Errorf("expected 405, got %d", rr.Code)
+	}
+}
 
-	listW := httptest.NewRecorder()
-	ListLandsHandler(listW, listReq)
+func TestAddLandHandler_InvalidToken(t *testing.T) {
+	land := Land{Village: "Rampur", Khasra: "K123", Acre: 2.5}
+	body, _ := json.Marshal(land)
+	req := httptest.NewRequest("POST", "/lands", bytes.NewReader(body))
+	req.Header.Set("Authorization", "invalid-token")
+	rr := httptest.NewRecorder()
+	AddLandHandler(rr, req)
+	if rr.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401, got %d", rr.Code)
+	}
+}
 
-	if listW.Result().StatusCode != http.StatusOK {
-		t.Fatalf("expected 200 OK, got %d", listW.Result().StatusCode)
+func TestAddLandHandler_InvalidBody(t *testing.T) {
+	req := httptest.NewRequest("POST", "/lands", strings.NewReader("{invalid"))
+	req.Header.Set("Authorization", ValidToken())
+	rr := httptest.NewRecorder()
+	AddLandHandler(rr, req)
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rr.Code)
+	}
+}
+
+func TestListLandsHandler_Success(t *testing.T) {
+	req := httptest.NewRequest("GET", "/lands", nil)
+	req.Header.Set("Authorization", ValidToken())
+	rr := httptest.NewRecorder()
+	ListLandsHandler(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rr.Code)
+	}
+}
+
+func TestListLandsHandler_Unauthorized(t *testing.T) {
+	req := httptest.NewRequest("GET", "/lands", nil)
+	req.Header.Set("Authorization", "invalid-token")
+	rr := httptest.NewRecorder()
+	ListLandsHandler(rr, req)
+	if rr.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401, got %d", rr.Code)
+	}
+}
+
+func TestListLandsHandler_InvalidMethod(t *testing.T) {
+	req := httptest.NewRequest("POST", "/lands", nil)
+	rr := httptest.NewRecorder()
+	ListLandsHandler(rr, req)
+	if rr.Code != http.StatusMethodNotAllowed {
+		t.Errorf("expected 405, got %d", rr.Code)
 	}
 }

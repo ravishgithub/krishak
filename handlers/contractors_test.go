@@ -1,47 +1,91 @@
 package handlers
 
 import (
+	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-
-	"github.com/ravishgithub/krishak/authentication"
 )
 
-func TestAddAndListContractors(t *testing.T) {
-	// Set the JWT secret  and config path already set in handlers_test.go
+func TestAddContractorHandler_Success(t *testing.T) {
+	contractor := Contractor{Name: "Ravi Contractor", Contact: "1234567890"}
+	body, _ := json.Marshal(contractor)
+	req := httptest.NewRequest("POST", "/contractors", bytes.NewReader(body))
+	req.Header.Set("Authorization", ValidToken())
+	rr := httptest.NewRecorder()
 
-	// Generate a valid token
-	token, err := authentication.GenerateToken("admin")
-	if err != nil {
-		t.Fatalf("failed to generate token: %v", err)
+	AddContractorHandler(rr, req)
+
+	if rr.Code != http.StatusCreated {
+		t.Errorf("expected status 201, got %d", rr.Code)
 	}
-
-	// Set up POST request to /contractors
-	addReq := httptest.NewRequest("POST", "/contractors", strings.NewReader(`{
-        "name": "Test Farmer",
-        "contact": "9999999999",
-        "aadhar": "111122223333"
-    }`))
-	addReq.Header.Set("Content-Type", "application/json")
-	addReq.Header.Set("Authorization", token)
-
-	addW := httptest.NewRecorder()
-	AddContractorHandler(addW, addReq)
-
-	if addW.Result().StatusCode != http.StatusCreated {
-		t.Fatalf("expected 201 Created, got %d", addW.Result().StatusCode)
+	var resp Contractor
+	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
+		t.Errorf("invalid response: %v", err)
 	}
+	if resp.Name != contractor.Name || resp.Contact != contractor.Contact {
+		t.Errorf("contractor fields not saved correctly")
+	}
+}
 
-	// GET request to /list_contractors
-	listReq := httptest.NewRequest("GET", "/list_contractors", nil)
-	listReq.Header.Set("Authorization", token)
+func TestAddContractorHandler_InvalidMethod(t *testing.T) {
+	req := httptest.NewRequest("GET", "/contractors", nil)
+	rr := httptest.NewRecorder()
+	AddContractorHandler(rr, req)
+	if rr.Code != http.StatusMethodNotAllowed {
+		t.Errorf("expected 405, got %d", rr.Code)
+	}
+}
 
-	listW := httptest.NewRecorder()
-	ListContractorsHandler(listW, listReq)
+func TestAddContractorHandler_InvalidToken(t *testing.T) {
+	contractor := Contractor{Name: "Ravi Contractor", Contact: "1234567890"}
+	body, _ := json.Marshal(contractor)
+	req := httptest.NewRequest("POST", "/contractors", bytes.NewReader(body))
+	req.Header.Set("Authorization", "invalid-token")
+	rr := httptest.NewRecorder()
+	AddContractorHandler(rr, req)
+	if rr.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401, got %d", rr.Code)
+	}
+}
 
-	if listW.Result().StatusCode != http.StatusOK {
-		t.Fatalf("expected 200 OK, got %d", listW.Result().StatusCode)
+func TestAddContractorHandler_InvalidBody(t *testing.T) {
+	req := httptest.NewRequest("POST", "/contractors", strings.NewReader("{invalid"))
+	req.Header.Set("Authorization", ValidToken())
+	rr := httptest.NewRecorder()
+	AddContractorHandler(rr, req)
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rr.Code)
+	}
+}
+
+func TestListContractorsHandler_Success(t *testing.T) {
+	req := httptest.NewRequest("GET", "/contractors", nil)
+	req.Header.Set("Authorization", ValidToken())
+	rr := httptest.NewRecorder()
+	ListContractorsHandler(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rr.Code)
+	}
+}
+
+func TestListContractorsHandler_Unauthorized(t *testing.T) {
+	req := httptest.NewRequest("GET", "/contractors", nil)
+	req.Header.Set("Authorization", "invalid-token")
+	rr := httptest.NewRecorder()
+	ListContractorsHandler(rr, req)
+	if rr.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401, got %d", rr.Code)
+	}
+}
+
+func TestListContractorsHandler_InvalidMethod(t *testing.T) {
+	req := httptest.NewRequest("POST", "/contractors", nil)
+	rr := httptest.NewRecorder()
+	ListContractorsHandler(rr, req)
+	if rr.Code != http.StatusMethodNotAllowed {
+		t.Errorf("expected 405, got %d", rr.Code)
 	}
 }

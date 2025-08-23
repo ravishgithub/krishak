@@ -58,3 +58,18 @@ echo "$CONTRACT_RESPONSE" | jq .
 
 echo
 echo "✅ All requests completed successfully."
+
+echo
+echo "🔎 Fetching Contractors..."
+GET_CONTRACTORS=$(curl -s -X GET http://localhost:8080/contractors -H "Authorization: $TOKEN")
+echo "$GET_CONTRACTORS" | jq .
+
+echo
+echo "🔎 Fetching Lands..."
+GET_LANDS=$(curl -s -X GET http://localhost:8080/lands -H "Authorization: $TOKEN")
+echo "$GET_LANDS" | jq .
+
+echo
+echo "🔎 Fetching Contracts..."
+GET_CONTRACTS=$(curl -s -X GET http://localhost:8080/contracts -H "Authorization: $TOKEN")
+echo "$GET_CONTRACTS" | jq .

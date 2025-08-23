@@ -10,10 +10,10 @@ import (
 )
 
 type Land struct {
-	ID       string  `json:"id"`
-	Size     float64 `json:"size"` // in acres
-	Location string  `json:"location"`
-	SoilType string  `json:"soil_type"`
+	ID      string  `json:"id"`
+	Village string  `json:"village"`
+	Khasra  string  `json:"khasra"`
+	Acre    float64 `json:"acre"`
 }
 
 var (
