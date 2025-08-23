@@ -1,8 +1,11 @@
 package authentication
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -18,7 +21,7 @@ func TestMain(m *testing.M) {
 	config := `{
         "login": {
             "username": "admin",
-            "password": "$2a$10$WcXsDJG7lsNQe08iKkH2z.rP4qqEtIZePI7vjC9dvUQx7et9RQY0u"
+            "password": "$2a$10$TyLfPLwjMxmE5nblEZZDN.UkEoFek9k3Ronc2aeLjcdaJbT31TgT2"
         },
         "server": { "port": 8080, "hostname": "localhost" },
         "database": { "username": "admin", "password": "admin123", "name": "testdb" }
@@ -37,5 +40,58 @@ func TestGenerateToken(t *testing.T) {
 	}
 	if token == "" {
 		t.Fatal("Expected non-empty token")
+	}
+}
+
+func TestIsValidToken(t *testing.T) {
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+	token, _ := GenerateToken("admin")
+	if !IsValidToken(token, cfg) {
+		t.Errorf("Valid token was not recognized")
+	}
+	if IsValidToken("invalid-token", cfg) {
+		t.Errorf("Invalid token was recognized as valid")
+	}
+}
+
+func TestLoadConfig(t *testing.T) {
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+	if cfg.Login.Username != "admin" {
+		t.Errorf("Expected username 'admin', got '%s'", cfg.Login.Username)
+	}
+}
+
+func TestNewLoginHandler(t *testing.T) {
+	handler, err := NewLoginHandler()
+	if err != nil {
+		t.Fatalf("Failed to create login handler: %v", err)
+	}
+	req := httptest.NewRequest("POST", "/login", strings.NewReader(`{"username":"admin","password":"admin"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+	handler(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected 200, got %d", rr.Code)
+	}
+}
+
+func TestNewCheckAuthHandler(t *testing.T) {
+	handler, err := NewCheckAuthHandler()
+	if err != nil {
+		t.Fatalf("Failed to create check auth handler: %v", err)
+	}
+	token, _ := GenerateToken("admin")
+	req := httptest.NewRequest("GET", "/check_auth", nil)
+	req.Header.Set("Authorization", token)
+	rr := httptest.NewRecorder()
+	handler(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected 200, got %d", rr.Code)
 	}
 }
